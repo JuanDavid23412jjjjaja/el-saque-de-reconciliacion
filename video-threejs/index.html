@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Saque de Reconciliación • Motion Design Showreel (120 BPM)</title>
+  
+  <!-- Tipografía Geist Oficial -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500;600;700;800&family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050608;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    #stage-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      max-width: 177.778vh; /* 16:9 Aspect Ratio Lock */
+      max-height: 56.25vw;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      display: block;
+      cursor: none; /* Cursor oculto en el lienzo para lectura limpia */
+    }
+
+    /* BARRA DE ESTADO Y CONTROL MINIMALISTA FLOTANTE (Centrada, no tapa esquinas) */
+    .hud-controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(900px, 90vw);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 17, 23, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    .hud-controls.visible {
+      opacity: 1;
+      pointer-events: auto;
+      cursor: default;
+    }
+
+    .hud-scrubber-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+      margin: 0 24px;
+      transition: height 0.15s ease;
+    }
+
+    .hud-scrubber-track:hover {
+      height: 8px;
+    }
+
+    .hud-scrubber-fill {
+      height: 100%;
+      width: 0%;
+      background: #45F0DD;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hud-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+
+    .hud-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .hud-btn.active {
+      background: rgba(69, 240, 221, 0.25);
+      border-color: #45F0DD;
+      color: #45F0DD;
+    }
+
+    .hud-time {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.05em;
+    }
+
+    /* PANTALLA INICIAL DE CLIC PARA ACTIVAR AUDIO */
+    .start-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(7, 8, 10, 0.94);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+
+    .start-box {
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 48px 64px;
+      border-radius: 12px;
+      background: rgba(22, 22, 26, 0.8);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+    }
+
+    .start-box h1 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .start-box p {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.82rem;
+      color: #45F0DD;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .start-box .press-pill {
+      display: inline-block;
+      background: #1B3ED2;
+      color: #ffffff;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.04); opacity: 0.85; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage-container">
+    <canvas id="motion-canvas"></canvas>
+
+    <!-- Overlay Inicial (El navegador exige interacción previa para Web Audio) -->
+    <div class="start-overlay" id="start-overlay">
+      <div class="start-box">
+        <h1>EL SAQUE DE RECONCILIACIÓN</h1>
+        <p>120 BPM • 3 TINTAS • 60 FRAMES • OPUS 5.5 ENGINE</p>
+        <div class="press-pill">▶ CLIC PARA INICIAR FILM (ESPACIO = PAUSA)</div>
+      </div>
+    </div>
+
+    <!-- Dock Minimalista Autohide -->
+    <div class="hud-controls" id="hud-controls">
+      <div class="hud-time" id="hud-time">00.00s / 60.00s</div>
+      <div class="hud-scrubber-track" id="scrubber-track">
+        <div class="hud-scrubber-fill" id="scrubber-fill"></div>
+      </div>
+      <div class="hud-actions">
+        <button class="hud-btn" id="btn-toggle-play">PAUSA [ESPACIO]</button>
+        <button class="hud-btn" id="btn-mute">AUDIO [M]</button>
+        <button class="hud-btn" id="btn-record">GRABAR WEBM [R]</button>
+        <button class="hud-btn" id="btn-fullscreen">FULLSCREEN [F]</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="sound-design.js"></script>
+  <script src="motion-engine.js"></script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('motion-canvas');
+      const startOverlay = document.getElementById('start-overlay');
+      const hudControls = document.getElementById('hud-controls');
+      const hudTime = document.getElementById('hud-time');
+      const scrubberTrack = document.getElementById('scrubber-track');
+      const scrubberFill = document.getElementById('scrubber-fill');
+      const btnTogglePlay = document.getElementById('btn-toggle-play');
+      const btnMute = document.getElementById('btn-mute');
+      const btnRecord = document.getElementById('btn-record');
+      const btnFullscreen = document.getElementById('btn-fullscreen');
+
+      const engine = new MotionEngine(canvas);
+      const sound = new SoundDesign();
+
+      let isPlaying = false;
+      let currentTime = 0;
+      let lastTimestamp = performance.now();
+      let hideTimeout = null;
+      let mediaRecorder = null;
+      let recordedChunks = [];
+
+      // Loop a 60 FPS exactos
+      function loop(now) {
+        window.__motion = {
+        get currentTime() { return currentTime; },
+        set currentTime(v) { currentTime = v; },
+        get isPlaying() { return isPlaying; },
+        set isPlaying(v) { isPlaying = v; },
+        engine,
+        sound
+      };
+
+      requestAnimationFrame(loop);
+
+        const delta = (now - lastTimestamp) / 1000;
+        lastTimestamp = now;
+
+        if (isPlaying) {
+          currentTime = (currentTime + delta) % engine.totalDuration;
+        }
+
+        // Renderizado determinista
+        const currentInk = engine.render(currentTime);
+
+        // Sonido de 120 BPM
+        if (isPlaying) {
+          sound.updateBeat(currentTime, currentInk);
+        }
+
+        // Actualizar barra de scrubber mínima
+        const progress = currentTime / engine.totalDuration;
+        scrubberFill.style.width = `${progress * 100}%`;
+        hudTime.textContent = `${currentTime.toFixed(2)}s / 60.00s`;
+      }
+
+      function startPlayback() {
+        sound.resume();
+        isPlaying = true;
+        startOverlay.style.display = 'none';
+        btnTogglePlay.textContent = 'PAUSA [ESPACIO]';
+        lastTimestamp = performance.now();
+      }
+
+      function togglePlay() {
+        if (startOverlay.style.display !== 'none') {
+          startPlayback();
+          return;
+        }
+        isPlaying = !isPlaying;
+        btnTogglePlay.textContent = isPlaying ? 'PAUSA [ESPACIO]' : 'REPRODUCIR [ESPACIO]';
+        if (isPlaying) {
+          sound.resume();
+          lastTimestamp = performance.now();
+        }
+      }
+
+      // Eventos
+      startOverlay.addEventListener('click', startPlayback);
+
+      // Mostrar controles al mover el ratón y ocultar tras 2 segundos
+      window.addEventListener('mousemove', () => {
+        hudControls.classList.add('visible');
+        canvas.style.cursor = 'default';
+        clearTimeout(hideTimeout);
+        hideTimeout = setTimeout(() => {
+          if (isPlaying) {
+            hudControls.classList.remove('visible');
+            canvas.style.cursor = 'none';
+          }
+        }, 2000);
+      });
+
+      // Scrubbing directo
+      scrubberTrack.addEventListener('click', (e) => {
+        const rect = scrubberTrack.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        currentTime = ratio * engine.totalDuration;
+        engine.render(currentTime);
+      });
+
+      btnTogglePlay.addEventListener('click', togglePlay);
+
+      btnMute.addEventListener('click', () => {
+        const muted = sound.toggleMute();
+        btnMute.textContent = muted ? 'MUTED [M]' : 'AUDIO [M]';
+        btnMute.classList.toggle('active', muted);
+      });
+
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      // Grabación de video 60 FPS WebM de calidad Master
+      btnRecord.addEventListener('click', toggleRecord);
+
+      function toggleRecord() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          btnRecord.textContent = 'GRABAR WEBM [R]';
+          btnRecord.classList.remove('active');
+          return;
+        }
+
+        const stream = canvas.captureStream(60);
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'El_Saque_de_Reconciliacion_Opus5.5.webm';
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        mediaRecorder.start();
+        currentTime = 0;
+        if (!isPlaying) startPlayback();
+        btnRecord.textContent = 'DETENER [R]';
+        btnRecord.classList.add('active');
+      }
+
+      // Atajos de teclado profesionales
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePlay();
+        } else if (e.code === 'ArrowRight') {
+          currentTime = (currentTime + 0.50) % engine.totalDuration; // Salto de 1 beat
+        } else if (e.code === 'ArrowLeft') {
+          currentTime = (currentTime - 0.50 + engine.totalDuration) % engine.totalDuration;
+        } else if (e.code === 'KeyM') {
+          btnMute.click();
+        } else if (e.code === 'KeyF') {
+          btnFullscreen.click();
+        } else if (e.code === 'KeyR') {
+          btnRecord.click();
+        }
+      });
+
+      window.__motion = {
+        get currentTime() { return currentTime; },
+        set currentTime(v) { currentTime = v; },
+        get isPlaying() { return isPlaying; },
+        set isPlaying(v) { isPlaying = v; },
+        engine,
+        sound
+      };
+
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>

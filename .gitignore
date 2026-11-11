@@ -1,0 +1,14 @@
+# Dependencies & Virtual Environments
+node_modules/
+__pycache__/
+*.pyc
+
+# Temporary Segments & Lock Files
+*.lock
+.video_segs*
+temp_audio/
+temp_voice/
+
+# OS metadata
+.DS_Store
+Thumbs.db

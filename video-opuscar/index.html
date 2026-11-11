@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>El Saque de Reconciliación · Lemo-Opuscar 3D</title>
+  
+  <!-- Web Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Three.js (r128) -->
+  <script src="assets/three.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #06080b;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f0f4f8;
+    }
+    #viewport {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #06080b;
+    }
+    #app-container {
+      position: absolute;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 0 0;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+      background: #0a0c10;
+      overflow: hidden;
+    }
+    #stage, #stage canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      display: block;
+    }
+    #ov {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Floating Studio Controls / Scrubber (Bottom Bar) */
+    #transport-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1080px;
+      height: 50px;
+      background: rgba(10, 14, 20, 0.92);
+      border: 1px solid rgba(63, 216, 255, 0.25);
+      border-radius: 25px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      z-index: 50;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      transition: opacity 0.3s ease;
+    }
+    .transport-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .transport-btn:hover {
+      background: rgba(63, 216, 255, 0.2);
+      border-color: #3fd8ff;
+      color: #3fd8ff;
+    }
+    .transport-btn.primary {
+      background: #ffd400;
+      color: #0c1015;
+      border: none;
+    }
+    .transport-btn.primary:hover {
+      background: #ffe34d;
+      transform: scale(1.04);
+    }
+    #timelineScrubber {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+    }
+    #timelineScrubber::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #3fd8ff;
+      box-shadow: 0 0 10px #3fd8ff;
+      cursor: pointer;
+    }
+    #timecodeLabel {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffd400;
+      letter-spacing: 0.5px;
+      min-width: 160px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport">
+    <div id="app-container">
+      <div id="stage"></div>
+      <canvas id="ov"></canvas>
+
+      <!-- Player Controls -->
+      <div id="transport-bar">
+        <button id="playBtn" class="transport-btn primary">PLAY</button>
+        <button id="restartBtn" class="transport-btn">REINICIAR</button>
+        <input type="range" id="timelineScrubber" min="0" max="1000" value="0">
+        <button id="muteBtn" class="transport-btn" style="color: #3fd8ff;">AUDIO ON</button>
+        <div id="timecodeLabel">00:00:00:00 / 00:00:10:00</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

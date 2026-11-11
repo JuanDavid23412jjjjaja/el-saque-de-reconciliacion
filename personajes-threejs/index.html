@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personajes 3D · El Saque de Reconciliación · SBL</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Three.js & OrbitControls -->
+  <script src="assets/three.min.js"></script>
+  <script src="assets/OrbitControls.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #080a0e;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f0f4f8;
+    }
+    #stage-container {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Studio Header */
+    #top-bar {
+      position: absolute;
+      top: 24px;
+      left: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 20;
+      pointer-events: auto;
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(14, 20, 28, 0.88);
+      border: 1px solid rgba(63, 216, 255, 0.25);
+      padding: 6px 14px;
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      width: fit-content;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00ffaa;
+      box-shadow: 0 0 8px #00ffaa;
+    }
+    .badge-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #3fd8ff;
+    }
+    .project-title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      margin-top: 6px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .project-sub {
+      font-size: 13px;
+      font-weight: 500;
+      color: #8b9eb0;
+      letter-spacing: 0.2px;
+    }
+
+    /* Top Center Controls / Quick instructions */
+    #instructions-card {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      background: rgba(14, 20, 28, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 10px 16px;
+      backdrop-filter: blur(12px);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #9cb0c4;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      z-index: 20;
+    }
+    #instructions-card span {
+      color: #ffd400;
+      font-weight: 700;
+    }
+
+    /* Character Bio Card placed on the RIGHT side so characters stay 100% visible! */
+    #bio-card {
+      position: absolute;
+      right: 32px;
+      top: 105px;
+      width: 360px;
+      background: rgba(12, 16, 24, 0.92);
+      border: 1px solid rgba(255, 212, 0, 0.35);
+      border-radius: 16px;
+      padding: 22px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+      z-index: 20;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .bio-dorsal {
+      display: inline-block;
+      background: #ffd400;
+      color: #0c1015;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .bio-name {
+      font-size: 22px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .bio-role {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #3fd8ff;
+      margin-bottom: 12px;
+    }
+    .bio-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #c4d2e0;
+      margin-bottom: 14px;
+    }
+    .bio-specs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .spec-item {
+      font-size: 11px;
+      color: #8b9eb0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .spec-item strong {
+      color: #f0f4f8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    /* Bottom Control Bar */
+    #bottom-controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(14, 20, 28, 0.92);
+      border: 1px solid rgba(63, 216, 255, 0.25);
+      border-radius: 30px;
+      padding: 8px 24px;
+      backdrop-filter: blur(16px);
+      z-index: 30;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7);
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .group-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6d849a;
+      letter-spacing: 0.5px;
+      margin-right: 4px;
+    }
+    .ui-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 18px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ui-btn:hover {
+      background: rgba(63, 216, 255, 0.22);
+      border-color: #3fd8ff;
+      color: #3fd8ff;
+      transform: translateY(-2px);
+    }
+    .ui-btn.active {
+      background: #ffd400;
+      border-color: #ffd400;
+      color: #0b0e14;
+      box-shadow: 0 0 14px rgba(255, 212, 0, 0.4);
+    }
+    .divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <div id="stage-container"></div>
+
+  <!-- Header -->
+  <div id="top-bar">
+    <div class="badge-pill">
+      <div class="badge-dot"></div>
+      <div class="badge-text">SBL 3D LAB // MODELADO POLIGONAL DE PERSONAJES</div>
+    </div>
+    <h1 class="project-title">El Saque de Reconciliación</h1>
+    <p class="project-sub">Colegio San Bonifacio de las Lanzas · Grado 10° · Dir: Juan David Rodríguez Cerón</p>
+  </div>
+
+  <!-- Instructions -->
+  <div id="instructions-card">
+    <div><span>CLICK + ARRASTRAR:</span> Orbitar 360°</div>
+    <div><span>RUEDA DEL RATÓN:</span> Zoom In / Out</div>
+    <div><span>CLICK DERECHO:</span> Desplazar cámara</div>
+  </div>
+
+  <!-- Bio Card (Right aligned) -->
+  <div id="bio-card">
+    <div class="bio-dorsal" id="bioDorsal"># EQUIPO SBL</div>
+    <h2 class="bio-name" id="bioName">Alineación de Grado 10°</h2>
+    <div class="bio-role" id="bioRole">Autores de "El Saque de Reconciliación"</div>
+    <p class="bio-desc" id="bioDesc">
+      Trío estudiantil de investigación en el Colegio San Bonifacio de las Lanzas. Desarrollan la transformación biomecánica y dialéctica del voleibol tradicional hacia el voleibol sentado.
+    </p>
+    <div class="bio-specs">
+      <div class="spec-item">ESTATURA ESTIMADA: <strong id="specHeight">Escala 1:1</strong></div>
+      <div class="spec-item">EQUIPAMIENTO: <strong id="specGear">Uniformes Oficiales SBL</strong></div>
+      <div class="spec-item">POSICIÓN TÉCNICA: <strong id="specPos">Equipo Completo</strong></div>
+      <div class="spec-item">SÍNTESIS DIALÉCTICA: <strong id="specDialectic">Tesis · Antítesis · Síntesis</strong></div>
+    </div>
+  </div>
+
+  <!-- Bottom Control Bar -->
+  <div id="bottom-controls">
+    <!-- Camera Focus -->
+    <div class="control-group">
+      <span class="group-label">ENFOQUE:</span>
+      <button class="ui-btn active" data-focus="all">TODOS</button>
+      <button class="ui-btn" data-focus="sofia">01. SOFÍA</button>
+      <button class="ui-btn" data-focus="juandiego">02. JUAN DIEGO</button>
+      <button class="ui-btn" data-focus="martin">03. MARTÍN</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Posture / Pose -->
+    <div class="control-group">
+      <span class="group-label">POSTURA:</span>
+      <button class="ui-btn active" data-pose="stand">DE PIE</button>
+      <button class="ui-btn" data-pose="sitting">VOLEIBOL SENTADO</button>
+      <button class="ui-btn" data-pose="spike">ACCIÓN / REMATE</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { CharacterViewer } from './viewer.js';
+
+    const container = document.getElementById('stage-container');
+    const viewer = new CharacterViewer(container);
+    viewer.animate();
+
+    // Bio Data
+    const bioData = {
+      all: {
+        dorsal: '# EQUIPO SBL',
+        name: 'Alineación de Grado 10°',
+        role: 'Autores de "El Saque de Reconciliación"',
+        desc: 'Trío estudiantil de investigación en el Colegio San Bonifacio de las Lanzas. Desarrollan la transformación biomecánica y dialéctica del voleibol tradicional hacia el voleibol sentado.',
+        height: 'Escala 1:1',
+        gear: 'Uniformes Oficiales SBL',
+        pos: 'Equipo Completo',
+        dialectic: 'Tesis · Antítesis · Síntesis'
+      },
+      sofia: {
+        dorsal: '#4 · CAPITANA',
+        name: 'Sofía Lara Mora',
+        role: 'Coordinación de Proyecto & Liderazgo',
+        desc: 'Lidera la formulación del problema y el diagnóstico estadístico (47.9% de exclusión en voleibol convencional). Dirige la propuesta de integración deportiva.',
+        height: '1.62 m',
+        gear: 'Brazalete C / Rodilleras',
+        pos: 'Recepción & Defensa',
+        dialectic: 'Articulación Comunitaria'
+      },
+      juandiego: {
+        dorsal: '#7 · ATACANTE',
+        name: 'Juan Diego Núñez',
+        role: 'Modelado Biomecánico & Remate',
+        desc: 'Analiza la cinemática del salto vertical tradicional y su sustitución por el anclaje pélvico (Regla WPV 4.2.1), reduciendo la ventaja antropométrica.',
+        height: '1.74 m',
+        gear: 'Manga Compresión / Rodilleras',
+        pos: 'Ataque & Potencia',
+        dialectic: 'Antítesis del Salto'
+      },
+      martin: {
+        dorsal: '#10 · ARMADOR',
+        name: 'Martín Quiñones',
+        role: 'Estrategia Táctica & Dialéctica',
+        desc: 'Diseña la distribución del juego desde la duela con el balón tricolor Mikasa. Encarna la síntesis hegeliana Geist que democratiza la motricidad colectiva.',
+        height: '1.68 m',
+        gear: 'Balón Mikasa Low-Poly',
+        pos: 'Armador & Táctica',
+        dialectic: 'Síntesis de Convivencia'
+      }
+    };
+
+    function updateBio(id) {
+      const data = bioData[id] || bioData.all;
+      document.getElementById('bioDorsal').textContent = data.dorsal;
+      document.getElementById('bioName').textContent = data.name;
+      document.getElementById('bioRole').textContent = data.role;
+      document.getElementById('bioDesc').textContent = data.desc;
+      document.getElementById('specHeight').textContent = data.height;
+      document.getElementById('specGear').textContent = data.gear;
+      document.getElementById('specPos').textContent = data.pos;
+      document.getElementById('specDialectic').textContent = data.dialectic;
+    }
+
+    // Button Listeners
+    document.querySelectorAll('[data-focus]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('[data-focus]').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        const focusId = e.target.getAttribute('data-focus');
+        viewer.focusOn(focusId);
+        updateBio(focusId);
+      });
+    });
+
+    document.querySelectorAll('[data-pose]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('[data-pose]').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        const poseId = e.target.getAttribute('data-pose');
+        viewer.setPose(poseId);
+      });
+    });
+  </script>
+</body>
+</html>

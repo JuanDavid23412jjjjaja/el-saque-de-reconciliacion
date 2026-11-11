@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stickman Video Director • Prueba 10s • El Saque de Reconciliación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@600;700;800&family=Geist:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #090b10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Geist', -apple-system, sans-serif;
+    }
+
+    #stage-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      max-width: 177.778vh; /* 16:9 Aspect Ratio */
+      max-height: 56.25vw;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      background: #0f1420;
+    }
+
+    /* CONTROLES FLOTANTES */
+    .controls-overlay {
+      position: absolute;
+      bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(15, 20, 32, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 20px;
+      border-radius: 30px;
+      z-index: 50;
+    }
+
+    .btn {
+      background: #e52424;
+      border: none;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #ff3b3b;
+      transform: scale(1.04);
+    }
+
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .time-badge {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage-container">
+    <canvas id="stickman-canvas"></canvas>
+
+    <div class="controls-overlay">
+      <button class="btn" id="btn-play">▶ REPRODUCIR (10S)</button>
+      <button class="btn secondary" id="btn-restart">↺ REPETIR</button>
+      <button class="btn secondary" id="btn-sound">🔊 AUDIO: ON</button>
+      <div class="time-badge" id="time-badge">00.00s / 10.00s</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('stickman-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1920;
+    canvas.height = 1080;
+
+    const btnPlay = document.getElementById('btn-play');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnSound = document.getElementById('btn-sound');
+    const timeBadge = document.getElementById('time-badge');
+
+    let currentTime = 0;
+    let isPlaying = false;
+    let isAudioEnabled = true;
+    let lastTime = performance.now();
+    const duration = 10.0; // 10 segundos exactos
+
+    // ==========================================
+    // AUDIO PROCEDURAL & SFX (Web Audio API)
+    // ==========================================
+    let audioCtx = null;
+    let masterGain = null;
+    let triggeredEvents = {};
+
+    function initAudio() {
+      if (audioCtx) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+      masterGain.connect(audioCtx.destination);
+    }
+
+    function playWhistle() {
+      if (!audioCtx || !isAudioEnabled) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2500, now);
+      osc.frequency.exponentialRampToValueAtTime(3200, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    }
+
+    function playBonk() {
+      if (!audioCtx || !isAudioEnabled) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.2);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+
+    function playHighFive() {
+      if (!audioCtx || !isAudioEnabled) return;
+      const now = audioCtx.currentTime;
+      [880, 1320, 1760].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+        gain.gain.setValueAtTime(0.15, now + idx * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.5);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(now + idx * 0.04);
+        osc.stop(now + idx * 0.04 + 0.5);
+      });
+    }
+
+    function speakNarration(text) {
+      if (!window.speechSynthesis || !isAudioEnabled) return;
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'es-CO';
+      utt.rate = 1.05;
+      window.speechSynthesis.speak(utt);
+    }
+
+    // ==========================================
+    // DIBUJO DEL PERSONAJE STICKMAN (Style 2A Beanie Zeke)
+    // ==========================================
+    function drawStickman(x, y, scale, pose) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = pose.strokeColor || '#ffffff';
+
+      // 1. Cabeza
+      ctx.fillStyle = pose.skinColor || '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(0, -95, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Cara simple y cómica (ojos expresivos)
+      ctx.fillStyle = '#0f172a';
+      if (pose.expression === 'angry') {
+        // Ojos enojados con ceño fruncido
+        ctx.beginPath();
+        ctx.arc(-8, -95, 3.5, 0, Math.PI * 2);
+        ctx.arc(8, -95, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-14, -104); ctx.lineTo(-4, -99);
+        ctx.moveTo(14, -104); ctx.lineTo(4, -99);
+        ctx.stroke();
+      } else if (pose.expression === 'shocked') {
+        // Ojos bien abiertos y boca O
+        ctx.beginPath();
+        ctx.arc(-8, -96, 4.5, 0, Math.PI * 2);
+        ctx.arc(8, -96, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, -84, 5, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (pose.expression === 'happy') {
+        // Ojos de arco sonrientes
+        ctx.beginPath();
+        ctx.arc(-8, -96, 4, Math.PI, 0);
+        ctx.arc(8, -96, 4, Math.PI, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, -86, 6, 0, Math.PI);
+        ctx.stroke();
+      } else {
+        // Normal / Neutral
+        ctx.beginPath();
+        ctx.arc(-7, -95, 3, 0, Math.PI * 2);
+        ctx.arc(7, -95, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Gorro Beanie Rojo (si aplica - Style 2A)
+      if (pose.hasBeanie) {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(0, -104, 26, Math.PI, Math.PI * 2);
+        ctx.lineTo(24, -96);
+        ctx.lineTo(-24, -96);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // 2. Torso
+      ctx.beginPath();
+      ctx.moveTo(0, -71);
+      ctx.lineTo(0, pose.isSitting ? -15 : 0);
+      ctx.stroke();
+
+      // Camiseta amarilla de Zeke
+      if (pose.hasBeanie) {
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.roundRect(-14, -71, 28, pose.isSitting ? 48 : 55, 6);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // 3. Brazos
+      ctx.beginPath();
+      ctx.moveTo(0, -60);
+      ctx.lineTo(pose.armL.x, pose.armL.y);
+      ctx.moveTo(0, -60);
+      ctx.lineTo(pose.armR.x, pose.armR.y);
+      ctx.stroke();
+
+      // 4. Piernas
+      const hipY = pose.isSitting ? -15 : 0;
+      if (pose.isSitting) {
+        // Piernas estiradas en el piso
+        ctx.beginPath();
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(pose.legL.x, hipY + 12);
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(pose.legR.x, hipY + 12);
+        ctx.stroke();
+
+        // Anillo de contacto pelvis en suelo
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(0, hipY + 14, 38, 10, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // Piernas de pie / saltando
+        ctx.beginPath();
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(pose.legL.x, pose.legL.y);
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(pose.legR.x, pose.legR.y);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // ==========================================
+    // RENDER PRINCIPAL DE LOS 10 SEGUNDOS (3 BEATS)
+    // ==========================================
+    function render(t) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Fondo Studio Tech con cuadrícula de perspectiva (Style 2A)
+      ctx.fillStyle = '#0b0f19';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Líneas de perspectiva del suelo
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.lineWidth = 1.5;
+      const floorY = 780;
+      ctx.beginPath();
+      ctx.moveTo(0, floorY);
+      ctx.lineTo(canvas.width, floorY);
+      ctx.stroke();
+
+      for (let x = -400; x <= canvas.width + 400; x += 160) {
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 480);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      // Red central de voleibol
+      // BEAT 1 (0-3s): Red alta a 2.43m (y = 420)
+      // BEAT 2 (3-7s): La red desciende bruscamente a 1.15m (y = 660)
+      let netY = 420;
+      if (t >= 3.0 && t < 4.0) {
+        const dropProgress = (t - 3.0) / 1.0;
+        netY = 420 + dropProgress * 240; // Descenso animado
+      } else if (t >= 4.0) {
+        netY = 660; // Red baja de voleibol sentado
+      }
+
+      // Poste de la red
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(960, floorY);
+      ctx.lineTo(960, netY - 20);
+      ctx.stroke();
+
+      // Malla de la red
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(950, netY, 20, floorY - netY);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(950, netY, 20, floorY - netY);
+
+      // Etiqueta de la red
+      ctx.font = '700 22px "Geist Mono", monospace';
+      ctx.fillStyle = t >= 3.5 ? '#10b981' : '#ef4444';
+      ctx.textAlign = 'center';
+      ctx.fillText(t >= 3.5 ? 'RED: 1.15 M (SENTADO)' : 'RED: 2.43 M (ALTA)', 960, netY - 40);
+
+      // ==========================================
+      // ACTUACIÓN DE LOS PERSONAJES SEGÚN BEAT
+      // ==========================================
+
+      // BEAT 1: [0.0s – 3.0s] — THE HOOK: EL REMATE DEL EGO Y LA EXCLUSIÓN
+      if (t < 3.0) {
+        if (!triggeredEvents['hookVO']) {
+          triggeredEvents['hookVO'] = true;
+          speakNarration('En el colegio, dos jugadores acaparan todo el juego.');
+        }
+
+        // Stickman 1 (Beanie Zeke): Saltando alto por los aires para rematar
+        const jumpY = floorY - 240 - Math.sin((t / 3.0) * Math.PI) * 120;
+        drawStickman(740, jumpY, 1.3, {
+          hasBeanie: true,
+          expression: 'angry',
+          isSitting: false,
+          armL: { x: -30, y: -90 },
+          armR: { x: 45, y: -120 }, // Brazo arriba rematando
+          legL: { x: -20, y: 70 },
+          legR: { x: 25, y: 50 }
+        });
+
+        // Balón disparado
+        const ballX = 740 + (t / 3.0) * 180;
+        const ballY = jumpY - 90 + Math.sin(t * 4) * 20;
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Stickman 2 (Compañero excluido en la esquina, cabizbajo)
+        drawStickman(360, floorY, 1.0, {
+          hasBeanie: false,
+          expression: 'shocked',
+          isSitting: false,
+          armL: { x: -15, y: -20 },
+          armR: { x: 15, y: -20 },
+          legL: { x: -15, y: 75 },
+          legR: { x: 15, y: 75 }
+        });
+
+        // Gráfico HUD flotante: 47.9% Exclusión
+        ctx.font = '900 48px "Geist", sans-serif';
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText('47.9% EXCLUIDO', 420, 360);
+        ctx.font = '600 20px "Geist Mono", monospace';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.fillText('"¡NO ME PASAN EL BALÓN!"', 420, 400);
+      }
+
+      // BEAT 2: [3.0s – 7.0s] — THE SHIFT: LA REGLA DE PELVIS AL PISO
+      else if (t < 7.0) {
+        if (!triggeredEvents['whistle']) {
+          triggeredEvents['whistle'] = true;
+          playWhistle();
+          speakNarration('¡Silbato! En voleibol sentado, la pelvis debe tocar el suelo.');
+        }
+
+        // Zeke cae al suelo con un bonk gracioso a los 4s
+        if (t >= 4.0 && !triggeredEvents['bonk']) {
+          triggeredEvents['bonk'] = true;
+          playBonk();
+        }
+
+        // Zeke intentando saltar pero obligado a sentarse
+        drawStickman(740, floorY, 1.2, {
+          hasBeanie: true,
+          expression: 'shocked',
+          isSitting: true,
+          armL: { x: -35, y: -30 },
+          armR: { x: 35, y: -30 },
+          legL: { x: -45, y: floorY },
+          legR: { x: 45, y: floorY }
+        });
+
+        // El compañero pequeño también se sienta a su lado
+        drawStickman(480, floorY, 1.1, {
+          hasBeanie: false,
+          expression: 'happy',
+          isSitting: true,
+          armL: { x: -25, y: -40 },
+          armR: { x: 35, y: -40 },
+          legL: { x: -35, y: floorY },
+          legR: { x: 35, y: floorY }
+        });
+
+        // Banner regulatorio
+        ctx.font = '900 42px "Geist", sans-serif';
+        ctx.fillStyle = '#38bdf8';
+        ctx.textAlign = 'center';
+        ctx.fillText('REGLA WORLD PARAVOLLEY: PELVIS AL SUELO', 960, 260);
+
+        ctx.font = '700 28px "Geist Mono", monospace';
+        ctx.fillStyle = '#f87171';
+        ctx.fillText('FUERZA VERTICAL DE SALTO: Fy = 0', 960, 320);
+      }
+
+      // BEAT 3: [7.0s – 10.0s] — THE RESOLUTION: EL PASE Y RECONCILIACIÓN
+      else {
+        if (!triggeredEvents['highfive']) {
+          triggeredEvents['highfive'] = true;
+          playHighFive();
+          speakNarration('El cuerpo obliga a cooperar. En la cancha jugamos todos.');
+        }
+
+        // El compañero sentado hace un pase perfecto con antebrazos
+        drawStickman(580, floorY, 1.2, {
+          hasBeanie: false,
+          expression: 'happy',
+          isSitting: true,
+          armL: { x: 35, y: -65 },
+          armR: { x: 35, y: -65 }, // Brazos juntos en golpe bajo
+          legL: { x: -40, y: floorY },
+          legR: { x: 40, y: floorY }
+        });
+
+        // Zeke remata sentado y chocan las manos
+        drawStickman(820, floorY, 1.2, {
+          hasBeanie: true,
+          expression: 'happy',
+          isSitting: true,
+          armL: { x: -35, y: -65 }, // Chocando los cinco
+          armR: { x: 40, y: -40 },
+          legL: { x: -40, y: floorY },
+          legR: { x: 40, y: floorY }
+        });
+
+        // El balón pasando la red con estela luminosa
+        const endBallT = (t - 7.0) / 3.0;
+        const arcX = 640 + endBallT * 480;
+        const arcY = 620 - Math.sin(endBallT * Math.PI) * 160;
+
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(arcX, arcY, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Título de Cierre
+        ctx.font = '900 52px "Geist", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('EL SAQUE DE RECONCILIACIÓN', 960, 240);
+
+        ctx.font = '700 24px "Geist Mono", monospace';
+        ctx.fillStyle = '#10b981';
+        ctx.fillText('71.2% LISTO PARA JUGAR • COLEGIO SAN BONIFACIO', 960, 290);
+      }
+
+      // Timecode en pantalla
+      ctx.font = '700 20px "Geist Mono", monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.textAlign = 'left';
+      ctx.fillText(`SCENE 01 • CLIP 01/01 • ${t.toFixed(2)}s`, 60, 60);
+    }
+
+    // Loop
+    function loop(now) {
+      requestAnimationFrame(loop);
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (isPlaying) {
+        currentTime += delta;
+        if (currentTime >= duration) {
+          currentTime = duration;
+          isPlaying = false;
+          btnPlay.textContent = '▶ REPETIR (10S)';
+        }
+      }
+
+      render(currentTime);
+      timeBadge.textContent = `${currentTime.toFixed(2)}s / 10.00s`;
+    }
+
+    btnPlay.addEventListener('click', () => {
+      initAudio();
+      if (currentTime >= duration) {
+        currentTime = 0;
+        triggeredEvents = {};
+      }
+      isPlaying = !isPlaying;
+      btnPlay.textContent = isPlaying ? '⏸ PAUSAR' : '▶ REPRODUCIR';
+      lastTime = performance.now();
+    });
+
+    btnRestart.addEventListener('click', () => {
+      initAudio();
+      currentTime = 0;
+      triggeredEvents = {};
+      isPlaying = true;
+      btnPlay.textContent = '⏸ PAUSAR';
+      lastTime = performance.now();
+    });
+
+    btnSound.addEventListener('click', () => {
+      isAudioEnabled = !isAudioEnabled;
+      btnSound.textContent = isAudioEnabled ? '🔊 AUDIO: ON' : '🔇 AUDIO: OFF';
+    });
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
