@@ -31,6 +31,13 @@ Este proyecto aborda la transición biomecánica y dialéctica desde el voleibol
   - Marcadores gráficos deportivos (*lower-thirds*), ecualizador de voz y telemetría biomecánica.
   - Video master renderizado en `out/El_Saque_de_Reconciliacion_Personajes.mp4` (1080p @ 24 fps).
 
+- **`video-3min/`**: Video final de 3 minutos (1080p @ 30 fps) con los tres estudiantes interactuando:
+  - Seis capítulos: la pregunta, el problema, el partido Ruanda–Colombia 2016, la regla, la jugada y la oportunidad.
+  - Motion design: logo animado del colegio, título cinético, datos de la encuesta, etiquetas ancladas al 3D y créditos.
+  - Voces neuronales en español con sincronía labial, subtítulos palabra a palabra, música y efectos sintetizados.
+  - Video master en `out/El_Saque_de_Reconciliacion_3min.mp4` (ver `video-3min/README.md`).
+  - Guía paso a paso para que otro modelo de IA lo reproduzca: `video-3min/GUIA_PARA_MODELOS.md`.
+
 - **`video-opuscar/`**: Demostración cinemática inicial con dirección estilizada y telestrator 2D proyectado.
 
 ---

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>El Saque de Reconciliación · Video 3 min · SBL Grado 10°</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;0,900;1,800;1,900&family=Inter:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="assets/three.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #04060a; overflow: hidden; font-family: 'Inter', sans-serif; }
+    #stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: 0 0; }
+    canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #bar { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 14px; align-items: center;
+      background: rgba(10,14,24,.9); border: 1px solid rgba(255,255,255,.18); border-radius: 30px; padding: 8px 18px; }
+    #play-btn { background: #ffd21f; border: 0; border-radius: 18px; padding: 8px 16px; font: 800 11px 'JetBrains Mono', monospace; cursor: pointer; }
+    #time-slider { width: 420px; accent-color: #e8102a; }
+    #time-label { font: 700 12px 'JetBrains Mono', monospace; color: #fff; min-width: 54px; }
+    body.render #bar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="webgl-canvas" width="1920" height="1080"></canvas>
+    <canvas id="overlay-canvas" width="1920" height="1080"></canvas>
+  </div>
+  <div id="bar"><button id="play-btn">REPRODUCIR</button><input type="range" id="time-slider" min="0" max="180" step="0.0333" value="0"><span id="time-label">0:00.0</span></div>
+  <script>
+    const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); document.getElementById('stage').style.transform = `scale(${s}) translate(-50%, -50%)`; };
+    addEventListener('resize', fit); fit();
+    if (location.search.includes('render')) document.body.classList.add('render');
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -12,3 +12,8 @@ temp_voice/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Render intermedio
+**/out/shots/
+**/out/segs/
+master_crf16.mp4
