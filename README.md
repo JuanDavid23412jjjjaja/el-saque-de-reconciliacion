@@ -38,6 +38,11 @@ Este proyecto aborda la transición biomecánica y dialéctica desde el voleibol
   - Video master en `out/El_Saque_de_Reconciliacion_3min.mp4` (ver `video-3min/README.md`).
   - Guía paso a paso para que otro modelo de IA lo reproduzca: `video-3min/GUIA_PARA_MODELOS.md`.
 
+- **`nagahiro/video/`**: Producto de otro equipo de Grado 10°, *Nagahiro and the Weight of the Flash* (Samuel Alejandro Losada Bravo y Tomás Alejandro Homez Barragán):
+  - Video-debate animado de 4:09 en inglés (B2+) con subtítulos en inglés, en tres rondas: tesis, antítesis y superación.
+  - Los cinco modelos de la propuesta en 3D (masa–energía, inverso del cuadrado, raíz cúbica, decaimiento y dosis–respuesta), sin violencia gráfica.
+  - Video en `nagahiro/video/out/Nagahiro_Video_Debate_web.mp4` (ver `nagahiro/video/README.md`).
+
 - **`video-opuscar/`**: Demostración cinemática inicial con dirección estilizada y telestrator 2D proyectado.
 
 ---
